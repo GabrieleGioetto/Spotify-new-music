@@ -4,31 +4,91 @@ import { useEffect, useState } from "react";
 const Homepage = () => {
   const router = useRouter();
   const [user, setUser] = useState({});
+  const [userArtists, setUserArtists] = useState([]);
+
+  const [newAlbums, setNewAlbums] = useState([]);
 
   const { access_token, refresh_token } = router.query;
 
   useEffect(() => {
     if (access_token) {
-      fetch("https://api.spotify.com/v1/me", {
+      const fetchUser = async () => {
+        const userResponse = await fetch("https://api.spotify.com/v1/me", {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + access_token,
+          },
+          json: true,
+        });
+        const userData = await userResponse.json();
+        setUser(userData);
+      };
+
+      const fetchUserArtists = async () => {
+        const userArtistsResponse = await fetch(
+          "https://api.spotify.com/v1/me/following?type=artist",
+          {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + access_token,
+            },
+            json: true,
+          }
+        );
+        const userArtistsData = await userArtistsResponse.json();
+        setUserArtists(userArtistsData.artists.items);
+      };
+
+      fetchUser();
+      fetchUserArtists();
+    }
+  }, [router]);
+
+  const handleCreatePlaylist = async () => {
+    const artistId = "0MTX6zc6t4ijdHIy1TaLjt";
+    const newAlbumsResponse = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}/albums?limit=50`,
+      {
         method: "GET",
         headers: {
           Authorization: "Bearer " + access_token,
         },
         json: true,
-      })
-        .then((response) => {
-          console.log(response);
-          return response.json();
-        })
-        .then((data) => {
-          console.log(data);
+      }
+    );
+    let newAlbumsData = await newAlbumsResponse.json();
+    newAlbumsData = newAlbumsData.items;
 
-          setUser(data);
-        });
-    }
-  }, [router]);
+    const filterDate = new Date();
+    filterDate.setMonth(filterDate.getMonth() - 1);
 
-  return user ? <div>{user.email}</div> : <div>Loading...</div>;
+    newAlbumsData = newAlbumsData.filter((album) => {
+      const release_date = new Date(album.release_date);
+      return release_date >= filterDate;
+    });
+
+    setNewAlbums(newAlbumsData);
+  };
+
+  return user?.email ? (
+    <>
+      <p>{user.email}</p>
+      <ul>
+        {userArtists.map((artist) => (
+          <li key={artist.id}>{artist.name}</li>
+        ))}
+      </ul>
+
+      <button onClick={handleCreatePlaylist}>Create playlist</button>
+      <ul>
+        {newAlbums.map((song) => (
+          <li key={song.id}>{song.name}</li>
+        ))}
+      </ul>
+    </>
+  ) : (
+    <div>Loading...</div>
+  );
 };
 
 export default Homepage;
