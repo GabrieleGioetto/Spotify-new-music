@@ -1,17 +1,21 @@
 import { Container, Row, Text } from "@nextui-org/react";
+import Link from "next/link";
 
-const Login = () => {
-  console.log("woo");
+const Login = (context) => {
+  console.log(context);
   return (
     <Container>
       <Row justify="center" align="center">
-        <Text h6 size={15} css={{ m: 0 }}>
-          NextUI gives you the best developer experience with all the features
-          you need for building beautiful and modern websites and applications.
-        </Text>
+        <Link href="/api/login">Login with Spotify</Link>
       </Row>
     </Container>
   );
 };
+
+export async function getServerSideProps(context) {
+  return {
+    props: { message: `Next.js is awesome` }, // will be passed to the page component as props
+  };
+}
 
 export default Login;
