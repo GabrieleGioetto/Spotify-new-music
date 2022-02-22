@@ -48,49 +48,57 @@ const Homepage = () => {
   const handleShowNewReleases = async () => {
     let allAlbums = [];
 
-    for (let i = 0; i < userArtists.length; i++) {
-      const artistId = userArtists[i].id;
+    let albumsPromises = [];
 
-      const getAlbums = async ({ include_groups = "albums" }) => {
-        const newAlbumsResponse = await fetch(
-          `https://api.spotify.com/v1/artists/${artistId}/albums?limit=50&include_groups=${include_groups}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-            json: true,
-          }
+    const getAlbumsPromises = ({ include_groups = "albums" }) => {
+      let promises = [];
+
+      for (let i = 0; i < userArtists.length; i++) {
+        const artistId = userArtists[i].id;
+
+        promises.push(
+          fetch(
+            `https://api.spotify.com/v1/artists/${artistId}/albums?limit=50&include_groups=${include_groups}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: "Bearer " + access_token,
+              },
+              json: true,
+            }
+          )
         );
-        let newAlbumsData = await newAlbumsResponse.json();
-        newAlbumsData = newAlbumsData.items;
+      }
 
-        const filterDate = new Date();
-        filterDate.setMonth(filterDate.getMonth() - 1);
+      return promises;
+    };
 
-        newAlbumsData = newAlbumsData.filter((album) => {
-          const release_date = new Date(album.release_date);
-          return release_date >= filterDate;
-        });
+    // TODO: add feature to choose only album/singles
+    // Add albums and singles
+    albumsPromises = [
+      ...getAlbumsPromises({ include_groups: "album" }),
+      ...getAlbumsPromises({ include_groups: "single" }),
+    ];
+    console.log(albumsPromises);
 
-        return newAlbumsData;
-      };
+    const responses = await Promise.all(albumsPromises);
+    console.log(responses);
+    let newAlbumsData = await Promise.all(
+      responses.map((r) => {
+        console.log(r);
+        return r.json();
+      })
+    );
 
-      // TODO:  Do a promise all
-      const newAlbumsData = await getAlbums({ include_groups: "album" });
-      const newSinglesData = await getAlbums({ include_groups: "single" });
-      // const newAppearsOnData = await getAlbums({
-      //   include_groups: "appears_on",
-      // });
-      allAlbums = [
-        ...allAlbums,
-        ...newAlbumsData,
-        ...newSinglesData,
-        // ...newAppearsOnData,
-      ];
+    allAlbums = newAlbumsData.flatMap((artistAlbums) => artistAlbums.items);
 
-      console.log(allAlbums);
-    }
+    const filterDate = new Date();
+    filterDate.setMonth(filterDate.getMonth() - 1);
+
+    allAlbums = allAlbums.filter((album) => {
+      const release_date = new Date(album.release_date);
+      return release_date >= filterDate;
+    });
 
     setNewAlbums(allAlbums);
   };
@@ -100,9 +108,7 @@ const Homepage = () => {
 
     const createPlaylist = async () => {
       const date = getTodayDate();
-
       const public_playlist = true;
-      console.log(date);
 
       const playlistResponse = await fetch(
         `https://api.spotify.com/v1/users/${user.id}/playlists`,
@@ -120,40 +126,35 @@ const Homepage = () => {
         }
       );
       const playlistData = await playlistResponse.json();
-
-      console.log(playlistData);
-      setPlaylist(playlistData);
-
       const playlistId = playlistData.id;
-
       const album_ids = newAlbums.map((album) => album.id);
 
-      console.log(album_ids);
-
       let track_uris = [];
+      let promises = [];
 
       for (let i = 0; i < album_ids.length; i++) {
         const album_id = album_ids[i];
 
-        const albumTracksResponse = await fetch(
-          `https://api.spotify.com/v1/albums/${album_id}/tracks`,
-          {
+        promises.push(
+          fetch(`https://api.spotify.com/v1/albums/${album_id}/tracks`, {
             method: "GET",
             headers: {
               Authorization: "Bearer " + access_token,
             },
             json: true,
             limit: 50,
-          }
+          })
         );
-        const albumTracksData = await albumTracksResponse.json();
-        console.log(albumTracksData);
-
-        track_uris = [
-          ...track_uris,
-          ...albumTracksData.items.map((track) => track.uri),
-        ];
       }
+
+      const responses = await Promise.all(promises);
+      const albumTracksDatas = await Promise.all(
+        responses.map((r) => r.json())
+      );
+
+      track_uris = albumTracksDatas.flatMap((album) =>
+        album.items.map((track) => track.uri)
+      );
 
       fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
         method: "POST",
