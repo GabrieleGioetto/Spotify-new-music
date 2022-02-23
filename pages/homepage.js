@@ -81,6 +81,7 @@ const Homepage = () => {
             color="primary"
             value={artist.id}
             size="sm"
+            key={artist.id}
           >
             {artist.name}
           </Checkbox>

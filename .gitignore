@@ -37,3 +37,11 @@ yarn-error.log*
 
 # api
 /pages/api/*
+
+# out
+/out/*
+
+#firebase
+.firebase/
+.firebaserc
+firebase.json

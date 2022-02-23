@@ -1,9 +1,8 @@
-import { Container, Row, Text } from "@nextui-org/react";
+import { Container } from "@nextui-org/react";
 import NextLink from "next/link";
-import { Button, css } from "@nextui-org/react";
+import { Button } from "@nextui-org/react";
 
-const Login = (context) => {
-  console.log(context);
+const Login = () => {
   return (
     <Container
       css={{ height: "90vh" }}
@@ -21,11 +20,5 @@ const Login = (context) => {
     </Container>
   );
 };
-
-export async function getServerSideProps(context) {
-  return {
-    props: { message: `Next.js is awesome` }, // will be passed to the page component as props
-  };
-}
 
 export default Login;
