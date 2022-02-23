@@ -1,16 +1,8 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { getTodayDate } from "../utils/dates";
-import {
-  Loading,
-  Text,
-  Container,
-  Checkbox,
-  Button,
-  Row,
-  Modal,
-} from "@nextui-org/react";
+import { Loading, Text, Container, Checkbox, Button } from "@nextui-org/react";
 import ModalNewReleases from "../components/ModalNewReleases";
+import { getUniqueListBy } from "../utils/functions";
 
 const Homepage = () => {
   const router = useRouter();
@@ -39,21 +31,40 @@ const Homepage = () => {
       };
 
       const fetchUserArtists = async () => {
-        const userArtistsResponse = await fetch(
-          "https://api.spotify.com/v1/me/following?type=artist",
-          {
+        // Spotify API only returns 50 artists maximum at a time
+        let notFinished = true;
+
+        let allUserArtistsData = [];
+        let link =
+          "https://api.spotify.com/v1/me/following?type=artist&limit=50";
+
+        while (notFinished) {
+          const userArtistsResponse = await fetch(link, {
             method: "GET",
             headers: {
               Authorization: "Bearer " + access_token,
             },
             json: true,
+          });
+          const userArtistsData = await userArtistsResponse.json();
+          allUserArtistsData = allUserArtistsData.concat(
+            userArtistsData.artists.items
+          );
+
+          next = userArtistsData.artists.next;
+
+          console.log(userArtistsData);
+          if (next == null) {
+            notFinished = false;
+          } else {
+            link = next;
           }
-        );
-        const userArtistsData = await userArtistsResponse.json();
-        setUserArtists(userArtistsData.artists.items);
-        setSelectedArtists(
-          userArtistsData.artists.items.map((artist) => artist.id)
-        );
+        }
+
+        console.log(allUserArtistsData);
+
+        setUserArtists(allUserArtistsData);
+        setSelectedArtists(allUserArtistsData.map((artist) => artist.id));
       };
 
       fetchUser();
@@ -109,9 +120,13 @@ const Homepage = () => {
     filterDate.setMonth(filterDate.getMonth() - 1);
 
     allAlbums = allAlbums.filter((album) => {
-      const release_date = new Date(album.release_date);
+      const release_date = new Date(album?.release_date);
       return release_date >= filterDate;
     });
+
+    console.log(allAlbums);
+
+    allAlbums = getUniqueListBy(allAlbums, "id");
 
     console.log(allAlbums);
 
@@ -122,7 +137,16 @@ const Homepage = () => {
   };
 
   return user?.email ? (
-    <Container display="flex" direction="column" alignItems="center">
+    <Container
+      display="flex"
+      direction="column"
+      alignItems="center"
+      css={{
+        "> *": {
+          marginBottom: "$8",
+        },
+      }}
+    >
       <Text
         h1
         size={60}

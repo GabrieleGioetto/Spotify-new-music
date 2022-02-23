@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Text, Checkbox, Button, Modal, Loading } from "@nextui-org/react";
 import { getTodayDate } from "../utils/dates";
+import { getOnlyExplicitVersion } from "../utils/functions";
 
 const ModalNewReleases = ({
   visible,
@@ -67,9 +68,13 @@ const ModalNewReleases = ({
     const responses = await Promise.all(promises);
     const albumTracksDatas = await Promise.all(responses.map((r) => r.json()));
 
-    track_uris = albumTracksDatas.flatMap((album) =>
-      album.items.map((track) => track.uri)
-    );
+    albumTracksDatas = albumTracksDatas.flatMap((album) => album.items);
+
+    albumTracksDatas = getOnlyExplicitVersion(albumTracksDatas);
+
+    console.log(albumTracksDatas);
+
+    track_uris = albumTracksDatas.map((track) => track.uri);
 
     await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
       method: "POST",
