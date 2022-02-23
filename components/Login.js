@@ -1,13 +1,23 @@
 import { Container, Row, Text } from "@nextui-org/react";
-import Link from "next/link";
+import NextLink from "next/link";
+import { Button, css } from "@nextui-org/react";
 
 const Login = (context) => {
   console.log(context);
   return (
-    <Container>
-      <Row justify="center" align="center">
-        <Link href="/api/login">Login with Spotify</Link>
-      </Row>
+    <Container
+      css={{ height: "90vh" }}
+      alignItems="center"
+      justify="center"
+      display="flex"
+      direction="row"
+      fluid={true}
+    >
+      <NextLink href="/api/login" passHref>
+        <Button shadow color="gradient" auto>
+          Login on Spotify
+        </Button>
+      </NextLink>
     </Container>
   );
 };

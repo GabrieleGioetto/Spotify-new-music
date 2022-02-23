@@ -1,13 +1,26 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { getTodayDate } from "../utils/dates";
+import {
+  Loading,
+  Text,
+  Container,
+  Checkbox,
+  Button,
+  Row,
+  Modal,
+} from "@nextui-org/react";
+import ModalNewReleases from "../components/ModalNewReleases";
 
 const Homepage = () => {
   const router = useRouter();
   const [user, setUser] = useState({});
   const [userArtists, setUserArtists] = useState([]);
   const [newAlbums, setNewAlbums] = useState([]);
-  const [playlist, setPlaylist] = useState({});
+  const [selectedArtists, setSelectedArtists] = useState([]);
+
+  // Modal handler
+  const [visible, setVisible] = useState(false);
 
   const { access_token, refresh_token } = router.query;
 
@@ -38,6 +51,9 @@ const Homepage = () => {
         );
         const userArtistsData = await userArtistsResponse.json();
         setUserArtists(userArtistsData.artists.items);
+        setSelectedArtists(
+          userArtistsData.artists.items.map((artist) => artist.id)
+        );
       };
 
       fetchUser();
@@ -53,8 +69,8 @@ const Homepage = () => {
     const getAlbumsPromises = ({ include_groups = "albums" }) => {
       let promises = [];
 
-      for (let i = 0; i < userArtists.length; i++) {
-        const artistId = userArtists[i].id;
+      for (let i = 0; i < selectedArtists.length; i++) {
+        const artistId = selectedArtists[i];
 
         promises.push(
           fetch(
@@ -79,13 +95,10 @@ const Homepage = () => {
       ...getAlbumsPromises({ include_groups: "album" }),
       ...getAlbumsPromises({ include_groups: "single" }),
     ];
-    console.log(albumsPromises);
 
     const responses = await Promise.all(albumsPromises);
-    console.log(responses);
     let newAlbumsData = await Promise.all(
       responses.map((r) => {
-        console.log(r);
         return r.json();
       })
     );
@@ -100,99 +113,81 @@ const Homepage = () => {
       return release_date >= filterDate;
     });
 
+    console.log(allAlbums);
+
+    // Default: all albums selected
     setNewAlbums(allAlbums);
-  };
 
-  const handleCreatePlaylist = async () => {
-    console.log(newAlbums);
-
-    const createPlaylist = async () => {
-      const date = getTodayDate();
-      const public_playlist = true;
-
-      const playlistResponse = await fetch(
-        `https://api.spotify.com/v1/users/${user.id}/playlists`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-          json: true,
-          body: JSON.stringify({
-            name: date,
-            public: public_playlist,
-            description: "Created automatically by Spotify-new-music",
-          }),
-        }
-      );
-      const playlistData = await playlistResponse.json();
-      const playlistId = playlistData.id;
-      const album_ids = newAlbums.map((album) => album.id);
-
-      let track_uris = [];
-      let promises = [];
-
-      for (let i = 0; i < album_ids.length; i++) {
-        const album_id = album_ids[i];
-
-        promises.push(
-          fetch(`https://api.spotify.com/v1/albums/${album_id}/tracks`, {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-            json: true,
-            limit: 50,
-          })
-        );
-      }
-
-      const responses = await Promise.all(promises);
-      const albumTracksDatas = await Promise.all(
-        responses.map((r) => r.json())
-      );
-
-      track_uris = albumTracksDatas.flatMap((album) =>
-        album.items.map((track) => track.uri)
-      );
-
-      fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-        json: true,
-        body: JSON.stringify({
-          uris: track_uris,
-        }),
-      });
-    };
-
-    createPlaylist();
+    setVisible(true);
   };
 
   return user?.email ? (
-    <>
-      <p>{user.email}</p>
-      <ul>
+    <Container display="flex" direction="column" alignItems="center">
+      <Text
+        h1
+        size={60}
+        css={{
+          textGradient: "45deg, $blue500 -20%, $pink500 50%",
+        }}
+        weight="bold"
+      >
+        Hello {user.display_name}
+      </Text>
+      <Text
+        h3
+        size={30}
+        css={{
+          textGradient: "45deg, $purple500 -20%, $pink500 100%",
+        }}
+        weight="bold"
+      >
+        Choose the artists that you want to see on your playlist
+      </Text>
+
+      <Checkbox.Group
+        color="success"
+        row
+        css={{
+          display: "flex",
+          flexWrap: "wrap",
+        }}
+        value={selectedArtists}
+        onChange={setSelectedArtists}
+      >
         {userArtists.map((artist) => (
-          <li key={artist.id}>{artist.name}</li>
+          <Checkbox
+            css={{ padding: "$2" }}
+            color="primary"
+            value={artist.id}
+            size="sm"
+          >
+            {artist.name}
+          </Checkbox>
         ))}
-      </ul>
+      </Checkbox.Group>
 
-      <button onClick={handleShowNewReleases}>Show new Releases</button>
-      <button onClick={handleCreatePlaylist}>Create playlist</button>
-
-      <ul>
-        {newAlbums.map((album) => (
-          <li key={album.id}>
-            {album.name} | {album.artists[0].name}
-          </li>
-        ))}
-      </ul>
-    </>
+      <Button css={{ margin: "$2" }} onClick={handleShowNewReleases}>
+        Show new Releases
+      </Button>
+      <ModalNewReleases
+        visible={visible}
+        setVisible={setVisible}
+        access_token={access_token}
+        newAlbums={newAlbums}
+        user_id={user.id}
+      />
+    </Container>
   ) : (
-    <div>Loading...</div>
+    <Container
+      css={{ height: "90vh" }}
+      alignItems="center"
+      justify="center"
+      display="flex"
+      direction="row"
+      fluid={true}
+    >
+      <Loading type="points"> Loading </Loading>
+    </Container>
   );
 };
 
