@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { Loading, Text, Container, Checkbox, Button } from "@nextui-org/react";
 import ModalNewReleases from "../components/ModalNewReleases";
-import { getUniqueListBy } from "../utils/functions";
+import { handleShowNewReleases } from "../utils/api_calls";
 
 const Homepage = () => {
   const router = useRouter();
@@ -10,6 +10,7 @@ const Homepage = () => {
   const [userArtists, setUserArtists] = useState([]);
   const [newAlbums, setNewAlbums] = useState([]);
   const [selectedArtists, setSelectedArtists] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Modal handler
   const [visible, setVisible] = useState(false);
@@ -72,70 +73,6 @@ const Homepage = () => {
     }
   }, [router]);
 
-  const handleShowNewReleases = async () => {
-    let allAlbums = [];
-
-    let albumsPromises = [];
-
-    const getAlbumsPromises = ({ include_groups = "albums" }) => {
-      let promises = [];
-
-      for (let i = 0; i < selectedArtists.length; i++) {
-        const artistId = selectedArtists[i];
-
-        promises.push(
-          fetch(
-            `https://api.spotify.com/v1/artists/${artistId}/albums?limit=50&include_groups=${include_groups}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: "Bearer " + access_token,
-              },
-              json: true,
-            }
-          )
-        );
-      }
-
-      return promises;
-    };
-
-    // TODO: add feature to choose only album/singles
-    // Add albums and singles
-    albumsPromises = [
-      ...getAlbumsPromises({ include_groups: "album" }),
-      ...getAlbumsPromises({ include_groups: "single" }),
-    ];
-
-    const responses = await Promise.all(albumsPromises);
-    let newAlbumsData = await Promise.all(
-      responses.map((r) => {
-        return r.json();
-      })
-    );
-
-    allAlbums = newAlbumsData.flatMap((artistAlbums) => artistAlbums.items);
-
-    const filterDate = new Date();
-    filterDate.setMonth(filterDate.getMonth() - 1);
-
-    allAlbums = allAlbums.filter((album) => {
-      const release_date = new Date(album?.release_date);
-      return release_date >= filterDate;
-    });
-
-    console.log(allAlbums);
-
-    allAlbums = getUniqueListBy(allAlbums, "id");
-
-    console.log(allAlbums);
-
-    // Default: all albums selected
-    setNewAlbums(allAlbums);
-
-    setVisible(true);
-  };
-
   return user?.email ? (
     <Container
       display="flex"
@@ -143,8 +80,9 @@ const Homepage = () => {
       alignItems="center"
       css={{
         "> *": {
-          marginBottom: "$8",
+          marginBottom: "$9 !important",
         },
+        marginTop: "$3",
       }}
     >
       <Text
@@ -190,8 +128,20 @@ const Homepage = () => {
         ))}
       </Checkbox.Group>
 
-      <Button css={{ margin: "$2" }} onClick={handleShowNewReleases}>
-        Show new Releases
+      <Button
+        css={{ margin: "$2" }}
+        onClick={() =>
+          handleShowNewReleases({
+            selectedArtists,
+            access_token,
+            setNewAlbums,
+            setVisible,
+            setLoading,
+          })
+        }
+        disabled={loading}
+      >
+        {loading ? <Loading color="white" size="sm" /> : `Show new Releases`}
       </Button>
       <ModalNewReleases
         visible={visible}

@@ -1,7 +1,6 @@
 import { Container, Row, Text } from "@nextui-org/react";
 import NextLink from "next/link";
 import { Button, css } from "@nextui-org/react";
-import { getOnlyExplicitVersion } from "../utils/functions";
 
 const Login = (context) => {
   console.log(context);
