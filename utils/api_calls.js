@@ -147,3 +147,57 @@ export const handleShowNewReleases = async ({
   setVisible(true);
   setLoading(false);
 };
+
+export const fetchUser = async ({ access_token, setUser }) => {
+  const userResponse = await fetch("https://api.spotify.com/v1/me", {
+    method: "GET",
+    headers: {
+      Authorization: "Bearer " + access_token,
+    },
+    json: true,
+  });
+  const userData = await userResponse.json();
+  setUser(userData);
+};
+
+export const fetchUserArtists = async ({
+  access_token,
+  setUserArtists,
+  setSelectedArtists,
+}) => {
+  // Spotify API only returns 50 artists maximum at a time
+  let notFinished = true;
+
+  let allUserArtistsData = [];
+  let link = "https://api.spotify.com/v1/me/following?type=artist&limit=50";
+
+  while (notFinished) {
+    const userArtistsResponse = await fetch(link, {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + access_token,
+      },
+      json: true,
+    });
+    const userArtistsData = await userArtistsResponse.json();
+    allUserArtistsData = allUserArtistsData.concat(
+      userArtistsData.artists.items
+    );
+
+    next = userArtistsData.artists.next;
+
+    console.log(userArtistsData);
+    if (next == null) {
+      notFinished = false;
+    } else {
+      link = next;
+    }
+  }
+
+  allUserArtistsData = allUserArtistsData.sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  setUserArtists(allUserArtistsData);
+  setSelectedArtists(allUserArtistsData.map((artist) => artist.id));
+};

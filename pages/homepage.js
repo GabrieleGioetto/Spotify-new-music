@@ -2,7 +2,11 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { Loading, Text, Container, Checkbox, Button } from "@nextui-org/react";
 import ModalNewReleases from "../components/ModalNewReleases";
-import { handleShowNewReleases } from "../utils/api_calls";
+import {
+  handleShowNewReleases,
+  fetchUser,
+  fetchUserArtists,
+} from "../utils/api_calls";
 
 const Homepage = () => {
   const router = useRouter();
@@ -19,57 +23,12 @@ const Homepage = () => {
 
   useEffect(() => {
     if (access_token) {
-      const fetchUser = async () => {
-        const userResponse = await fetch("https://api.spotify.com/v1/me", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-          json: true,
-        });
-        const userData = await userResponse.json();
-        setUser(userData);
-      };
-
-      const fetchUserArtists = async () => {
-        // Spotify API only returns 50 artists maximum at a time
-        let notFinished = true;
-
-        let allUserArtistsData = [];
-        let link =
-          "https://api.spotify.com/v1/me/following?type=artist&limit=50";
-
-        while (notFinished) {
-          const userArtistsResponse = await fetch(link, {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-            json: true,
-          });
-          const userArtistsData = await userArtistsResponse.json();
-          allUserArtistsData = allUserArtistsData.concat(
-            userArtistsData.artists.items
-          );
-
-          next = userArtistsData.artists.next;
-
-          console.log(userArtistsData);
-          if (next == null) {
-            notFinished = false;
-          } else {
-            link = next;
-          }
-        }
-
-        console.log(allUserArtistsData);
-
-        setUserArtists(allUserArtistsData);
-        setSelectedArtists(allUserArtistsData.map((artist) => artist.id));
-      };
-
-      fetchUser();
-      fetchUserArtists();
+      fetchUser({ access_token, setUser });
+      fetchUserArtists({
+        access_token,
+        setUserArtists,
+        setSelectedArtists,
+      });
     }
   }, [router]);
 
@@ -140,6 +99,9 @@ const Homepage = () => {
           })
         }
         disabled={loading}
+        rounded
+        color="gradient"
+        size="lg"
       >
         {loading ? <Loading color="white" size="sm" /> : `Show new Releases`}
       </Button>
