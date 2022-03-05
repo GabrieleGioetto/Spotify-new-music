@@ -1,5 +1,9 @@
 import { getTodayDate } from "../utils/dates";
-import { getOnlyExplicitVersion, getUniqueListBy } from "../utils/functions";
+import {
+  getOnlyExplicitVersion,
+  getUniqueListBy,
+  getLastWeekDate,
+} from "../utils/functions";
 
 export const handleCreatePlaylist = async ({
   user_id,
@@ -57,8 +61,6 @@ export const handleCreatePlaylist = async ({
 
   albumTracksDatas = getOnlyExplicitVersion(albumTracksDatas);
 
-  console.log(albumTracksDatas);
-
   track_uris = albumTracksDatas.map((track) => track.uri);
 
   await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
@@ -82,6 +84,7 @@ export const handleShowNewReleases = async ({
   setNewAlbums,
   setVisible,
   setLoading,
+  startDate,
 }) => {
   setLoading(true);
   let allAlbums = [];
@@ -127,19 +130,14 @@ export const handleShowNewReleases = async ({
 
   allAlbums = newAlbumsData.flatMap((artistAlbums) => artistAlbums.items);
 
-  const filterDate = new Date();
-  filterDate.setMonth(filterDate.getMonth() - 1);
+  const filterDate = new Date(startDate);
 
   allAlbums = allAlbums.filter((album) => {
     const release_date = new Date(album?.release_date);
     return release_date >= filterDate;
   });
 
-  console.log(allAlbums);
-
   allAlbums = getUniqueListBy(allAlbums, "id");
-
-  console.log(allAlbums);
 
   // Default: all albums selected
   setNewAlbums(allAlbums);
@@ -186,7 +184,6 @@ export const fetchUserArtists = async ({
 
     next = userArtistsData.artists.next;
 
-    console.log(userArtistsData);
     if (next == null) {
       notFinished = false;
     } else {

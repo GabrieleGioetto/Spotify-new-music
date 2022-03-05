@@ -24,3 +24,20 @@ export function getOnlyExplicitVersion(tracks) {
 
   return filtered;
 }
+
+export function getLastWeekDate() {
+  const now = new Date();
+  // filterDate.setMonth(filterDate.getMonth() - 1);
+  const filterDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 7
+  );
+
+  console.log(
+    filterDate.toLocaleDateString("en-GB").split("/").reverse().join("-")
+  );
+  // get date format YYYY-MM-DD from DD/MM/YYYY
+
+  return filterDate.toLocaleDateString("en-GB").split("/").reverse().join("-");
+}

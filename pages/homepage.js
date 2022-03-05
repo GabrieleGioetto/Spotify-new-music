@@ -1,12 +1,21 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { Loading, Text, Container, Checkbox, Button } from "@nextui-org/react";
+import {
+  Loading,
+  Text,
+  Container,
+  Checkbox,
+  Button,
+  Row,
+  Input,
+} from "@nextui-org/react";
 import ModalNewReleases from "../components/ModalNewReleases";
 import {
   handleShowNewReleases,
   fetchUser,
   fetchUserArtists,
 } from "../utils/api_calls";
+import { getLastWeekDate } from "../utils/functions";
 
 const Homepage = () => {
   const router = useRouter();
@@ -15,6 +24,7 @@ const Homepage = () => {
   const [newAlbums, setNewAlbums] = useState([]);
   const [selectedArtists, setSelectedArtists] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState(getLastWeekDate());
 
   // Modal handler
   const [visible, setVisible] = useState(false);
@@ -65,6 +75,18 @@ const Homepage = () => {
         Choose the artists that you want to see on your playlist
       </Text>
 
+      <Row>
+        <Input
+          initialValue={startDate}
+          width="200px"
+          label="Start date"
+          type="date"
+          onChange={(e) => {
+            setStartDate(e.target.value);
+          }}
+        />
+      </Row>
+
       <Checkbox.Group
         color="success"
         row
@@ -97,6 +119,7 @@ const Homepage = () => {
             setNewAlbums,
             setVisible,
             setLoading,
+            startDate,
           })
         }
         disabled={loading}
